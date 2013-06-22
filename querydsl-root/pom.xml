@@ -423,6 +423,7 @@
         
         <!-- NoSQL -->
         <module>../querydsl-mongodb</module>
+        <module>../querydsl-dynamodb</module>
         
         <!-- Languages -->        
         <module>../querydsl-scala</module>
@@ -484,6 +485,16 @@
         <module>../querydsl-codegen</module>
         <module>../querydsl-apt</module> 
         <module>../querydsl-mongodb</module>        
+      </modules>
+    </profile>
+    
+    <profile>
+      <id>dynamodb</id>
+      <modules>
+        <module>../querydsl-core</module>
+        <module>../querydsl-codegen</module>
+        <module>../querydsl-apt</module> 
+        <module>../querydsl-dynamodb</module>        
       </modules>
     </profile>
     

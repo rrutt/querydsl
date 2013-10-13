@@ -1,14 +1,15 @@
 package com.mysema.query.dynamodb;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 import javax.annotation.Nullable;
 
-import com.amazonaws.services.dynamodb.AmazonDynamoDB;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBScanExpression;
-import com.amazonaws.services.dynamodb.datamodeling.PaginatedScanList;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBScanExpression;
+import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedScanList;
 import com.mysema.commons.lang.CloseableIterator;
 import com.mysema.query.DefaultQueryMetadata;
 import com.mysema.query.NonUniqueResultException;
@@ -100,7 +101,7 @@ public class DynamoDBQuery<Q> implements SimpleQuery<DynamoDBQuery<Q>>, SimplePr
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private List<Q> cast(PaginatedScanList result) {
-		return result;
+		return new ArrayList<Q>(result);
 	}
 
 	private DynamoDBScanExpression createQuery(@Nullable QueryMetadata queryMetadata) {

@@ -19,7 +19,7 @@
     <hibernate.version>4.1.7.Final</hibernate.version>
     <jdo.version>2.3-eb</jdo.version>
     <morphia.version>0.99</morphia.version>
-    <aws.version>1.3.33</aws.version>
+    <aws.version>1.4.2</aws.version>
   </properties>
 
   <dependencies>

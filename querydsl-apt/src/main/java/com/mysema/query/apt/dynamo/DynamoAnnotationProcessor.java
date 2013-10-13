@@ -19,8 +19,8 @@ import java.util.Collections;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBIgnore;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBTable;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBIgnore;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
 import com.mysema.query.annotations.QueryEntities;
 import com.mysema.query.apt.AbstractQuerydslProcessor;
 import com.mysema.query.apt.Configuration;
@@ -31,7 +31,7 @@ import com.mysema.query.apt.DefaultConfiguration;
  *
  * @author Marvin
  */
-@SupportedAnnotationTypes({"com.mysema.query.annotations.*","com.amazonaws.services.dynamodb.datamodeling.*"})
+@SupportedAnnotationTypes({"com.mysema.query.annotations.*","com.amazonaws.services.dynamodbv2.datamodeling.*"})
 public class DynamoAnnotationProcessor extends AbstractQuerydslProcessor {
     
     @Override

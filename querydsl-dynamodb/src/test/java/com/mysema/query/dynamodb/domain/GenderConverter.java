@@ -1,6 +1,6 @@
 package com.mysema.query.dynamodb.domain;
 
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMarshaller;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMarshaller;
 import com.mysema.query.dynamodb.domain.User.Gender;
 
 public class GenderConverter implements DynamoDBMarshaller<Gender> {

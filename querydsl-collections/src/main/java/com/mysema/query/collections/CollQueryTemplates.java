@@ -67,6 +67,7 @@ public class CollQueryTemplates extends JavaTemplates {
         add(Ops.DateTimeOps.SECOND,       functions + ".getSecond({0})");
         add(Ops.DateTimeOps.MILLISECOND,  functions + ".getMilliSecond({0})");
 
+        add(Ops.DateTimeOps.YEAR_MONTH,   functions + ".getYearMonth({0})");
         add(Ops.DateTimeOps.YEAR_WEEK,    functions + ".getYearWeek({0})");
 
         // String
@@ -89,7 +90,6 @@ public class CollQueryTemplates extends JavaTemplates {
         add(Ops.COALESCE, functions + ".coalesce({0})");
 
         add(Ops.NULLIF, functions + ".nullif({0}, {1})");
-
     }
 
 }

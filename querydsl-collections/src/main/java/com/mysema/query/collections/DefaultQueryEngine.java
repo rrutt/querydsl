@@ -1,6 +1,6 @@
 /*
  * Copyright 2011, Mysema Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -31,6 +31,8 @@ import com.mysema.query.QueryModifiers;
 import com.mysema.query.types.ArrayConstructorExpression;
 import com.mysema.query.types.Expression;
 import com.mysema.query.types.Operation;
+import com.mysema.query.types.Operator;
+import com.mysema.query.types.Ops;
 import com.mysema.query.types.Order;
 import com.mysema.query.types.OrderSpecifier;
 
@@ -44,14 +46,14 @@ import com.mysema.query.types.OrderSpecifier;
 public class DefaultQueryEngine implements QueryEngine {
 
     private static volatile QueryEngine DEFAULT;
-    
+
     public static QueryEngine getDefault() {
         if (DEFAULT == null) {
-            DEFAULT = new DefaultQueryEngine(new DefaultEvaluatorFactory(CollQueryTemplates.DEFAULT));        
+            DEFAULT = new DefaultQueryEngine(new DefaultEvaluatorFactory(CollQueryTemplates.DEFAULT));
         }
         return DEFAULT;
-    }    
-    
+    }
+
     private final DefaultEvaluatorFactory evaluatorFactory;
 
     public DefaultQueryEngine(DefaultEvaluatorFactory evaluatorFactory) {
@@ -83,7 +85,7 @@ public class DefaultQueryEngine implements QueryEngine {
     }
 
     @Override
-    public <T> List<T> list(QueryMetadata metadata, Map<Expression<?>, Iterable<?>> iterables, 
+    public <T> List<T> list(QueryMetadata metadata, Map<Expression<?>, Iterable<?>> iterables,
             Expression<T> projection) {
         if (metadata.getJoins().size() == 1) {
             return evaluateSingleSource(metadata, iterables, false);
@@ -94,7 +96,7 @@ public class DefaultQueryEngine implements QueryEngine {
 
     private <T> List<T> distinct(List<T> list) {
         List<T> rv = new ArrayList<T>(list.size());
-        if (!list.isEmpty() && list.get(0).getClass().isArray()) {
+        if (!list.isEmpty() && list.get(0) != null && list.get(0).getClass().isArray()) {
             Set set = new HashSet(list.size());
             for (T o : list) {
                 if (set.add(ImmutableList.copyOf((Object[])o))) {
@@ -112,7 +114,7 @@ public class DefaultQueryEngine implements QueryEngine {
         return rv;
     }
 
-    private List evaluateMultipleSources(QueryMetadata metadata, Map<Expression<?>, 
+    private List evaluateMultipleSources(QueryMetadata metadata, Map<Expression<?>,
             Iterable<?>> iterables, boolean count) {
         // from where
         Evaluator<List<Object[]>> ev = evaluatorFactory.createEvaluator(metadata, metadata.getJoins(), metadata.getWhere());
@@ -138,6 +140,8 @@ public class DefaultQueryEngine implements QueryEngine {
             if (!metadata.getOrderBy().isEmpty()) {
                 order(metadata, sources, list);
             }
+            // projection
+            list = project(metadata, sources, list);
             // limit + offset
             if (metadata.getModifiers().isRestricting()) {
                 list = metadata.getModifiers().subList(list);
@@ -145,8 +149,6 @@ public class DefaultQueryEngine implements QueryEngine {
             if (list.isEmpty()) {
                 return list;
             }
-            // projection
-            list = project(metadata, sources, list);
         }
 
         // distinct
@@ -157,7 +159,7 @@ public class DefaultQueryEngine implements QueryEngine {
         return list;
     }
 
-    private List evaluateSingleSource(QueryMetadata metadata, Map<Expression<?>, 
+    private List evaluateSingleSource(QueryMetadata metadata, Map<Expression<?>,
             Iterable<?>> iterables, boolean count) {
         final Expression<?> source = metadata.getJoins().get(0).getTarget();
         final List<Expression<?>> sources = Collections.<Expression<?>>singletonList(source);
@@ -185,16 +187,16 @@ public class DefaultQueryEngine implements QueryEngine {
                 }
                 order(metadata, sources, list);
             }
+            // projection
+            if (metadata.getProjection().size() > 1 || !metadata.getProjection().get(0).equals(source)) {
+                list = project(metadata, sources, list);
+            }
             // limit + offset
             if (metadata.getModifiers().isRestricting()) {
                 list = metadata.getModifiers().subList(list);
             }
             if (list.isEmpty()) {
                 return list;
-            }
-            // projection
-            if (metadata.getProjection().size() > 1 || !metadata.getProjection().get(0).equals(source)) {
-                list = project(metadata, sources, list);
             }
         }
 
@@ -222,11 +224,22 @@ public class DefaultQueryEngine implements QueryEngine {
     }
 
     private List<?> project(QueryMetadata metadata, List<Expression<?>> sources, List<?> list) {
-        Evaluator projectionEvaluator = evaluatorFactory.create(metadata, sources, metadata.getProjection().get(0));
+        Expression<?> projection = metadata.getProjection().get(0);
+        Operator<?> aggregator = null;
+        if (projection instanceof Operation && Ops.aggOps.contains(((Operation)projection).getOperator())) {
+            Operation<?> aggregation = (Operation<?>)projection;
+            aggregator = aggregation.getOperator();
+            projection = aggregation.getArg(0);
+        }
+        Evaluator projectionEvaluator = evaluatorFactory.create(metadata, sources, projection);
         EvaluatorFunction transformer = new EvaluatorFunction(projectionEvaluator);
         List target = new ArrayList();
         Iterators.addAll(target, Iterators.transform(list.iterator(), transformer));
-        return target;
+        if (aggregator != null) {
+            return ImmutableList.of(CollQueryFunctions.aggregate(target, projection, aggregator));
+        } else {
+            return target;
+        }
     }
 
 

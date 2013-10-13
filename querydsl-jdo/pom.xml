@@ -5,7 +5,7 @@
   <parent>
     <groupId>com.mysema.querydsl</groupId>
     <artifactId>querydsl-root</artifactId>
-    <version>3.2.1.BUILD-SNAPSHOT</version>
+    <version>3.2.4.BUILD-SNAPSHOT</version>
     <relativePath>../querydsl-root/pom.xml</relativePath> 
   </parent>
 
@@ -16,8 +16,8 @@
   <packaging>jar</packaging>
 
   <properties>   
-    <dn.version>3.2.0-m1</dn.version>
-    <dn.plugin.version>3.2.0-m1</dn.plugin.version>
+    <dn.version>3.2.0-release</dn.version>
+    <dn.plugin.version>3.2.0-release</dn.plugin.version>
   </properties>
 
   <dependencies>
@@ -128,26 +128,26 @@
       </plugin>      
     
       <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-jar-plugin</artifactId>
-          <executions>
-              <execution>
-                <id>apt</id>
-              <goals>
-                  <goal>jar</goal>                
-              </goals>    
-              <configuration>
-                <classifier>apt</classifier>
-                <classesDirectory>src/apt</classesDirectory>                                    
-              </configuration>              
-           </execution>            
-          </executions>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>apt</id>
+            <goals>
+              <goal>jar</goal>                
+            </goals>    
+            <configuration>
+              <classifier>apt</classifier>
+              <classesDirectory>src/apt</classesDirectory>                                    
+            </configuration>              
+          </execution>            
+        </executions>
       </plugin> 
         
       <!-- this plugin does the JDO class enhancement -->
       <plugin>
         <groupId>org.datanucleus</groupId>
-        <artifactId>maven-datanucleus-plugin</artifactId>
+        <artifactId>datanucleus-maven-plugin</artifactId>
         <version>${dn.plugin.version}</version>
         <configuration>
             <metadataDirectory>target/test-classes</metadataDirectory>
@@ -173,6 +173,12 @@
             <version>${dn.version}</version>
             <scope>runtime</scope>
           </dependency>
+          <dependency>
+            <groupId>org.datanucleus</groupId>
+            <artifactId>datanucleus-core</artifactId>
+            <version>${dn.version}</version>
+            <scope>runtime</scope>
+          </dependency>
         </dependencies>       
       </plugin> 
       
@@ -180,7 +186,7 @@
         <artifactId>maven-assembly-plugin</artifactId>
         <executions>
           <execution>
-              <id>apt-one-jar</id>
+            <id>apt-one-jar</id>
             <goals>
               <goal>single</goal>    
             </goals>
@@ -198,7 +204,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.6</version>
         <executions>
           <execution>
           <id>verification</id>    

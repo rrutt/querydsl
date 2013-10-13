@@ -87,6 +87,7 @@ public class PostgresTemplates extends SQLTemplates {
         add(Ops.DateTimeOps.MINUTE, "extract(minute from {0})");
         add(Ops.DateTimeOps.SECOND, "extract(second from {0})");
 
+        add(Ops.DateTimeOps.YEAR_MONTH, "extract(year from {0}) * 100 + extract(month from {0})");
         add(Ops.DateTimeOps.YEAR_WEEK, "(extract(isoyear from {0}) * 100 + extract(week from {0}))");
 
         add(Ops.AggOps.BOOLEAN_ANY, "bool_or({0})", 0);
@@ -102,8 +103,8 @@ public class PostgresTemplates extends SQLTemplates {
 
         String yearsDiff = "date_part('year', age({1}, {0}))";
         String monthsDiff = "(" + yearsDiff + " * 12 + date_part('month', age({1}, {0})))";
-        String weeksDiff =  "trunc(({1}::date - {0}::date)/7)";
-        String daysDiff = "({1}::date - {0}::date)";
+        String weeksDiff =  "trunc((cast({1} as date) - cast({0} as date))/7)";
+        String daysDiff = "(cast({1} as date) - cast({0} as date))";
         String hoursDiff = "("+ daysDiff + " * 24 + date_part('hour', age({1}, {0})))";
         String minutesDiff = "(" + hoursDiff + " * 60 + date_part('minute', age({1}, {0})))";
         String secondsDiff =  "(" +  minutesDiff + " * 60 + date_part('minute', age({1}, {0})))";

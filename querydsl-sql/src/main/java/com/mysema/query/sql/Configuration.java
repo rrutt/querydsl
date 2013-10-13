@@ -1,6 +1,6 @@
 /*
  * Copyright 2011, Mysema Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -16,6 +16,7 @@ package com.mysema.query.sql;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -25,46 +26,44 @@ import com.mysema.commons.lang.Pair;
 import com.mysema.query.sql.types.BigDecimalAsDoubleType;
 import com.mysema.query.sql.types.Null;
 import com.mysema.query.sql.types.Type;
-import com.mysema.query.sql.types.UntypedNullType;
 import com.mysema.query.types.Path;
 
 /**
  * Configuration for SQLQuery instances
- * 
+ *
  * @author tiwe
  *
  */
 public final class Configuration {
-    
+
     /**
      * Default instance
      */
     public static final Configuration DEFAULT = new Configuration(SQLTemplates.DEFAULT);
-    
+
     private final JDBCTypeMapping jdbcTypeMapping = new JDBCTypeMapping();
-    
+
     private final JavaTypeMapping javaTypeMapping = new JavaTypeMapping();
-    
+
     private final Map<String, String> schemas = Maps.newHashMap();
-    
+
     private final Map<Pair<String, String>, String> schemaTables = Maps.newHashMap();
-    
+
     private final Map<String, String> tables = Maps.newHashMap();
-    
+
     private final SQLTemplates templates;
-    
+
+    private final SQLListeners listeners = new SQLListeners();
+
     private boolean hasTableColumnTypes = false;
-    
+
     /**
      * Create a new Configuration instance
-     * 
+     *
      * @param templates
      */
-    public Configuration(SQLTemplates templates) {       
+    public Configuration(SQLTemplates templates) {
         this.templates = templates;
-        if (!templates.isParameterMetadataAvailable()) {
-            javaTypeMapping.register(new UntypedNullType());
-        }
         if (!templates.isBigDecimalSupported()) {
             javaTypeMapping.register(new BigDecimalAsDoubleType());
         }
@@ -73,10 +72,10 @@ public final class Configuration {
     public SQLTemplates getTemplates() {
         return templates;
     }
-    
+
     /**
      * Get the java type for the given jdbc type, table name and column name
-     * 
+     *
      * @param sqlType
      * @param size
      * @param digits
@@ -92,7 +91,7 @@ public final class Configuration {
             return jdbcTypeMapping.get(sqlType, size, digits);
         }
     }
-    
+
     /**
      * @param <T>
      * @param rs
@@ -102,14 +101,14 @@ public final class Configuration {
      * @return
      * @throws SQLException
      */
-    @Nullable    
-    public <T> T get(ResultSet rs, @Nullable Path<?> path, int i, Class<T> clazz) throws SQLException {        
+    @Nullable
+    public <T> T get(ResultSet rs, @Nullable Path<?> path, int i, Class<T> clazz) throws SQLException {
         return getType(path, clazz).getValue(rs, i);
     }
-    
+
     /**
      * Get schema override or schema
-     * 
+     *
      * @param schema
      * @return
      */
@@ -120,10 +119,10 @@ public final class Configuration {
             return schema;
         }
     }
-    
+
     /**
      * Get table override or table
-     * 
+     *
      * @param schema
      * @param table
      * @return
@@ -139,9 +138,9 @@ public final class Configuration {
             return tables.get(table);
         } else {
             return table;
-        }        
+        }
     }
-        
+
     /**
      * @param <T>
      * @param stmt
@@ -152,27 +151,36 @@ public final class Configuration {
      * @throws SQLException
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public <T> void set(PreparedStatement stmt, Path<?> path, int i, T value) throws SQLException{
-        getType(path, (Class)value.getClass()).setValue(stmt, i, value);
+    public <T> void set(PreparedStatement stmt, Path<?> path, int i, T value) throws SQLException {
+        if (Null.class.isInstance(value)) {
+            Integer sqlType = path != null ? jdbcTypeMapping.get(path.getType()) : null;
+            if (sqlType != null) {
+                stmt.setNull(i, sqlType);
+            } else {
+                stmt.setNull(i, Types.NULL);
+            }
+        } else {
+            getType(path, (Class)value.getClass()).setValue(stmt, i, value);
+        }
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private <T> Type<T> getType(@Nullable Path<?> path, Class<T> clazz) {
-        if (hasTableColumnTypes && path != null && !clazz.equals(Null.class) 
+        if (hasTableColumnTypes && path != null && !clazz.equals(Null.class)
                 && path.getMetadata().getParent() instanceof RelationalPath) {
             String table = ((RelationalPath)path.getMetadata().getParent()).getTableName();
             String column = path.getMetadata().getName();
             Type<T> type = (Type)javaTypeMapping.getType(table, column);
             if (type != null) {
                 return type;
-            }                        
+            }
         }
         return javaTypeMapping.getType(clazz);
     }
-    
+
     /**
      * Register a schema override
-     * 
+     *
      * @param oldSchema
      * @param newSchema
      * @return
@@ -180,10 +188,10 @@ public final class Configuration {
     public String registerSchemaOverride(String oldSchema, String newSchema) {
         return schemas.put(oldSchema, newSchema);
     }
-    
+
     /**
      * Register a table override
-     * 
+     *
      * @param oldTable
      * @param newTable
      * @return
@@ -191,10 +199,10 @@ public final class Configuration {
     public String registerTableOverride(String oldTable, String newTable) {
         return tables.put(oldTable, newTable);
     }
-    
+
     /**
      * Register a schema specific table override
-     * 
+     *
      * @param schema
      * @param oldTable
      * @param newTable
@@ -203,20 +211,20 @@ public final class Configuration {
     public String registerTableOverride(String schema, String oldTable, String newTable) {
         return schemaTables.put(Pair.of(schema, oldTable), newTable);
     }
-    
+
     /**
      * Register the given Type to be used
-     * 
+     *
      * @param type
      */
     public void register(Type<?> type) {
         jdbcTypeMapping.register(type.getSQLTypes()[0], type.getReturnedClass());
         javaTypeMapping.register(type);
     }
-    
+
     /**
      * Override the binding for the given NUMERIC type
-     * 
+     *
      * @param size
      * @param digits
      * @param javaType
@@ -227,7 +235,7 @@ public final class Configuration {
 
     /**
      * Register the given Type for the given table and column
-     * 
+     *
      * @param table
      * @param column
      * @param type
@@ -235,6 +243,20 @@ public final class Configuration {
     public void register(String table, String column, Type<?> type) {
         javaTypeMapping.setType(table, column, type);
         hasTableColumnTypes = true;
+    }
+
+    /**
+     * @param listeners
+     */
+    public void addListener(SQLListener listener) {
+        listeners.add(listener);
+    }
+
+    /**
+     * @return
+     */
+    public SQLListeners getListeners() {
+        return listeners;
     }
 
 }

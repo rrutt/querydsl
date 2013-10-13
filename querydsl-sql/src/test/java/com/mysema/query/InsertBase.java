@@ -17,6 +17,7 @@ import static com.mysema.query.Constants.survey;
 import static com.mysema.query.Constants.survey2;
 import static com.mysema.query.Target.CUBRID;
 import static com.mysema.query.Target.DERBY;
+import static com.mysema.query.Target.HSQLDB;
 import static com.mysema.query.Target.MYSQL;
 import static com.mysema.query.Target.ORACLE;
 import static org.junit.Assert.assertEquals;
@@ -39,6 +40,7 @@ import com.mysema.query.sql.dml.SQLInsertClause;
 import com.mysema.query.sql.domain.Employee;
 import com.mysema.query.sql.domain.QEmployee;
 import com.mysema.query.sql.domain.QSurvey;
+import com.mysema.query.support.Expressions;
 import com.mysema.query.types.Path;
 import com.mysema.query.types.PathImpl;
 import com.mysema.query.types.expr.Param;
@@ -63,56 +65,30 @@ public class InsertBase extends AbstractBaseTest {
     }
 
     @Test
-    public void Insert_With_Columns() {
+    public void Complex1() {
+        // related to #584795
+        QSurvey survey = new QSurvey("survey");
+        QEmployee emp1 = new QEmployee("emp1");
+        QEmployee emp2 = new QEmployee("emp2");
+        SQLInsertClause insert = insert(survey);
+        insert.columns(survey.id, survey.name);
+        insert.select(new SQLSubQuery().from(survey)
+          .innerJoin(emp1)
+           .on(survey.id.eq(emp1.id))
+          .innerJoin(emp2)
+           .on(emp1.superiorId.eq(emp2.superiorId), emp1.firstname.eq(emp2.firstname))
+          .list(survey.id, emp2.firstname));
+
+        insert.execute();
+    }
+
+    @Test
+    public void Insert_Alternative_Syntax() {
+        // with columns
         assertEquals(1, insert(survey)
-                .columns(survey.id, survey.name)
-                .values(3, "Hello").execute());
-    }
-
-    @Test
-    public void Insert_Without_Columns() {
-        assertEquals(1, insert(survey).values(4, "Hello", "World").execute());
-
-    }
-
-    @Test
-    public void Insert_With_SubQuery() {
-        int count = (int)query().from(survey).count();
-        assertEquals(count, insert(survey)
-            .columns(survey.id, survey.name)
-            .select(sq().from(survey2).list(survey2.id.add(20), survey2.name))
+            .set(survey.id, 3)
+            .set(survey.name, "Hello")
             .execute());
-    }
-
-    @Test
-    public void Insert_With_SubQuery_Params() {
-        Param<Integer> param = new Param<Integer>(Integer.class, "param");
-        SQLSubQuery sq = sq().from(survey2);
-        sq.set(param, 20);
-
-        int count = (int)query().from(survey).count();
-        assertEquals(count, insert(survey)
-            .columns(survey.id, survey.name)
-            .select(sq.list(survey2.id.add(param), survey2.name))
-            .execute());
-    }
-
-    @Test
-    public void Insert_With_SubQuery_Via_Constructor() {
-        int count = (int)query().from(survey).count();
-        SQLInsertClause insert = insert(survey, sq().from(survey2));
-        insert.set(survey.id, survey2.id.add(20));
-        insert.set(survey.name, survey2.name);
-        assertEquals(count, insert.execute());
-    }
-
-    @Test
-    public void Insert_With_SubQuery_Without_Columns() {
-        int count = (int)query().from(survey).count();
-        assertEquals(count, insert(survey)
-            .select(sq().from(survey2).list(survey2.id.add(10), survey2.name, survey2.name2))
-            .execute());
-
     }
 
     @Test
@@ -130,6 +106,19 @@ public class InsertBase extends AbstractBaseTest {
 
         assertEquals(1l, query().from(survey).where(survey.name.eq("55")).count());
         assertEquals(1l, query().from(survey).where(survey.name.eq("66")).count());
+    }
+
+    @Test
+    public void Insert_Null_With_Columns() {
+        assertEquals(1, insert(survey)
+                .columns(survey.id, survey.name)
+                .values(3, null).execute());
+    }
+
+    @Test
+    public void Insert_Null_Without_Columns() {
+        assertEquals(1, insert(survey)
+                .values(4, null, null).execute());
     }
 
     @Test
@@ -171,39 +160,11 @@ public class InsertBase extends AbstractBaseTest {
     }
 
     @Test
-    public void Like_with_Escape() {
-        SQLInsertClause insert = insert(survey);
-        insert.set(survey.id, 5).set(survey.name, "aaa").addBatch();
-        insert.set(survey.id, 6).set(survey.name, "a_").addBatch();
-        insert.set(survey.id, 7).set(survey.name, "a%").addBatch();
-        assertEquals(3, insert.execute());
-
-        assertEquals(1l, query().from(survey).where(survey.name.like("a|%", '|')).count());
-        assertEquals(1l, query().from(survey).where(survey.name.like("a|_", '|')).count());
-        assertEquals(3l, query().from(survey).where(survey.name.like("a%")).count());
-        assertEquals(2l, query().from(survey).where(survey.name.like("a_")).count());
-
-        assertEquals(1l, query().from(survey).where(survey.name.startsWith("a_")).count());
-        assertEquals(1l, query().from(survey).where(survey.name.startsWith("a%")).count());
+    public void Insert_With_Columns() {
+        assertEquals(1, insert(survey)
+                .columns(survey.id, survey.name)
+                .values(3, "Hello").execute());
     }
-
-    @Test
-    public void InsertBatch_with_Subquery() {
-        SQLInsertClause insert = insert(survey)
-            .columns(survey.id, survey.name)
-            .select(sq().from(survey2).list(survey2.id.add(20), survey2.name))
-            .addBatch();
-
-        insert(survey)
-            .columns(survey.id, survey.name)
-            .select(sq().from(survey2).list(survey2.id.add(40), survey2.name))
-            .addBatch();
-
-        insert.execute();
-//        assertEquals(1, insert.execute());
-    }
-
- // http://sourceforge.net/tracker/index.php?func=detail&aid=3513432&group_id=280608&atid=2377440
 
     @Test
     @ExcludeIn(CUBRID)
@@ -228,18 +189,7 @@ public class InsertBase extends AbstractBaseTest {
         assertNotNull(id);
     }
 
-    @Test
-    public void Insert_Null_With_Columns() {
-        assertEquals(1, insert(survey)
-                .columns(survey.id, survey.name)
-                .values(3, null).execute());
-    }
-
-    @Test
-    public void Insert_Null_Without_Columns() {
-        assertEquals(1, insert(survey)
-                .values(4, null, null).execute());
-    }
+ // http://sourceforge.net/tracker/index.php?func=detail&aid=3513432&group_id=280608&atid=2377440
 
     @Test
     public void Insert_With_Set() {
@@ -247,33 +197,6 @@ public class InsertBase extends AbstractBaseTest {
                 .set(survey.id, 5)
                 .set(survey.name, (String)null)
                 .execute());
-    }
-
-    @Test
-    public void Insert_Alternative_Syntax() {
-        // with columns
-        assertEquals(1, insert(survey)
-            .set(survey.id, 3)
-            .set(survey.name, "Hello")
-            .execute());
-    }
-
-    @Test
-    public void Complex1() {
-        // related to #584795
-        QSurvey survey = new QSurvey("survey");
-        QEmployee emp1 = new QEmployee("emp1");
-        QEmployee emp2 = new QEmployee("emp2");
-        SQLInsertClause insert = insert(survey);
-        insert.columns(survey.id, survey.name);
-        insert.select(new SQLSubQuery().from(survey)
-          .innerJoin(emp1)
-           .on(survey.id.eq(emp1.id))
-          .innerJoin(emp2)
-           .on(emp1.superiorId.eq(emp2.superiorId), emp1.firstname.eq(emp2.firstname))
-          .list(survey.id, emp2.firstname));
-
-        insert.execute();
     }
 
     @Test
@@ -291,6 +214,125 @@ public class InsertBase extends AbstractBaseTest {
     }
 
     @Test
+    public void Insert_With_SubQuery() {
+        int count = (int)query().from(survey).count();
+        assertEquals(count, insert(survey)
+            .columns(survey.id, survey.name)
+            .select(sq().from(survey2).list(survey2.id.add(20), survey2.name))
+            .execute());
+    }
+
+    @Test
+    @ExcludeIn({HSQLDB, DERBY})
+    public void Insert_With_SubQuery2() {
+//        insert into modules(name)
+//        select 'MyModule'
+//        where not exists
+//        (select 1 from modules where modules.name = 'MyModule')
+
+        assertEquals(1, insert(survey).set(survey.name,
+            sq().where(sq().from(survey2)
+                           .where(survey2.name.eq("MyModule")).notExists())
+                .unique(Expressions.constant("MyModule")))
+            .execute());
+
+        assertEquals(1l , query().from(survey).where(survey.name.eq("MyModule")).count());
+    }
+
+    @Test
+    @ExcludeIn({HSQLDB, DERBY})
+    public void Insert_With_SubQuery3() {
+//        insert into modules(name)
+//        select 'MyModule'
+//        where not exists
+//        (select 1 from modules where modules.name = 'MyModule')
+
+        assertEquals(1, insert(survey).columns(survey.name).select(
+            sq().where(sq().from(survey2)
+                           .where(survey2.name.eq("MyModule2")).notExists())
+                .unique(Expressions.constant("MyModule2")))
+            .execute());
+
+        assertEquals(1l , query().from(survey).where(survey.name.eq("MyModule2")).count());
+    }
+
+    @Test
+    public void Insert_With_SubQuery_Params() {
+        Param<Integer> param = new Param<Integer>(Integer.class, "param");
+        SQLSubQuery sq = sq().from(survey2);
+        sq.set(param, 20);
+
+        int count = (int)query().from(survey).count();
+        assertEquals(count, insert(survey)
+            .columns(survey.id, survey.name)
+            .select(sq.list(survey2.id.add(param), survey2.name))
+            .execute());
+    }
+
+    @Test
+    public void Insert_With_SubQuery_Via_Constructor() {
+        int count = (int)query().from(survey).count();
+        SQLInsertClause insert = insert(survey, sq().from(survey2));
+        insert.set(survey.id, survey2.id.add(20));
+        insert.set(survey.name, survey2.name);
+        assertEquals(count, insert.execute());
+    }
+
+    @Test
+    public void Insert_With_SubQuery_Without_Columns() {
+        int count = (int)query().from(survey).count();
+        assertEquals(count, insert(survey)
+            .select(sq().from(survey2).list(survey2.id.add(10), survey2.name, survey2.name2))
+            .execute());
+
+    }
+
+    @Test
+    public void Insert_Without_Columns() {
+        assertEquals(1, insert(survey).values(4, "Hello", "World").execute());
+
+    }
+
+    @Test
+    public void InsertBatch_with_Subquery() {
+        SQLInsertClause insert = insert(survey)
+            .columns(survey.id, survey.name)
+            .select(sq().from(survey2).list(survey2.id.add(20), survey2.name))
+            .addBatch();
+
+        insert(survey)
+            .columns(survey.id, survey.name)
+            .select(sq().from(survey2).list(survey2.id.add(40), survey2.name))
+            .addBatch();
+
+        insert.execute();
+//        assertEquals(1, insert.execute());
+    }
+
+    @Test
+    public void Like() {
+        insert(survey).values(11, "Hello World", "a\\b").execute();
+        assertEquals(1l, query().from(survey).where(survey.name2.contains("a\\b")).count());
+    }
+
+    @Test
+    public void Like_with_Escape() {
+        SQLInsertClause insert = insert(survey);
+        insert.set(survey.id, 5).set(survey.name, "aaa").addBatch();
+        insert.set(survey.id, 6).set(survey.name, "a_").addBatch();
+        insert.set(survey.id, 7).set(survey.name, "a%").addBatch();
+        assertEquals(3, insert.execute());
+
+        assertEquals(1l, query().from(survey).where(survey.name.like("a|%", '|')).count());
+        assertEquals(1l, query().from(survey).where(survey.name.like("a|_", '|')).count());
+        assertEquals(3l, query().from(survey).where(survey.name.like("a%")).count());
+        assertEquals(2l, query().from(survey).where(survey.name.like("a_")).count());
+
+        assertEquals(1l, query().from(survey).where(survey.name.startsWith("a_")).count());
+        assertEquals(1l, query().from(survey).where(survey.name.startsWith("a%")).count());
+    }
+
+    @Test
     @IncludeIn(MYSQL)
     @SkipForQuoted
     public void Replace() {
@@ -300,12 +342,6 @@ public class InsertBase extends AbstractBaseTest {
 
         assertEquals("replace into SURVEY (ID, NAME) values (?, ?)", clause.toString());
         clause.execute();
-    }
-
-    @Test
-    public void Like() {
-        insert(survey).values(11, "Hello World", "a\\b").execute();
-        assertEquals(1l, query().from(survey).where(survey.name2.contains("a\\b")).count());
     }
 
 

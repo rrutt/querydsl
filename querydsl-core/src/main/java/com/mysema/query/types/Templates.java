@@ -88,6 +88,7 @@ public class Templates {
         add(Ops.INSTANCE_OF, "{0}.class = {1}");
         add(Ops.NE, "{0} != {1}", 25);
         add(Ops.IN, "{0} in {1}", 27);
+        add(Ops.NOT_IN, "{0} not in {1}", 27);
         add(Ops.IS_NULL, "{0} is null", 26);
         add(Ops.IS_NOT_NULL, "{0} is not null", 26);
         add(Ops.ALIAS, "{0} as {1}", 0);
@@ -142,6 +143,7 @@ public class Templates {
         add(Ops.DateTimeOps.WEEK, "week({0})");
         add(Ops.DateTimeOps.MONTH, "month({0})");
         add(Ops.DateTimeOps.YEAR, "year({0})");
+        add(Ops.DateTimeOps.YEAR_MONTH, "yearMonth({0})");
         add(Ops.DateTimeOps.YEAR_WEEK, "yearweek({0})");
         add(Ops.DateTimeOps.DAY_OF_WEEK, "dayofweek({0})");
         add(Ops.DateTimeOps.DAY_OF_MONTH, "dayofmonth({0})");
@@ -189,6 +191,7 @@ public class Templates {
         add(Ops.MathOps.SIN, "sin({0})");
         add(Ops.MathOps.SINH, "sinh({0})");
         add(Ops.MathOps.ROUND, "round({0})");
+        add(Ops.MathOps.ROUND2, "round({0},{1})");
         add(Ops.MathOps.RAD, "radians({0})");
         add(Ops.MathOps.RANDOM, "random()");
         add(Ops.MathOps.RANDOM2, "random({0})");
@@ -219,8 +222,8 @@ public class Templates {
         add(PathType.ARRAYVALUE_CONSTANT, "{0}[{1s}]");    // serialized constant
 
         // case
-        add(Ops.CASE, "case {0} end");
-        add(Ops.CASE_WHEN,  "when {0} then {1} {2}");
+        add(Ops.CASE, "case {0} end", 0);
+        add(Ops.CASE_WHEN,  "when {0} then {1} {2}", 0);
         add(Ops.CASE_ELSE,  "else {0}");
 
         // case for

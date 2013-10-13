@@ -1,6 +1,6 @@
 /*
  * Copyright 2011, Mysema Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -25,14 +25,16 @@ import com.mysema.query.sql.types.BlobType;
 import com.mysema.query.sql.types.BooleanType;
 import com.mysema.query.sql.types.ByteType;
 import com.mysema.query.sql.types.BytesType;
+import com.mysema.query.sql.types.CalendarType;
 import com.mysema.query.sql.types.CharacterType;
 import com.mysema.query.sql.types.ClobType;
+import com.mysema.query.sql.types.CurrencyType;
 import com.mysema.query.sql.types.DateType;
 import com.mysema.query.sql.types.DoubleType;
 import com.mysema.query.sql.types.FloatType;
 import com.mysema.query.sql.types.IntegerType;
+import com.mysema.query.sql.types.LocaleType;
 import com.mysema.query.sql.types.LongType;
-import com.mysema.query.sql.types.NullType;
 import com.mysema.query.sql.types.ObjectType;
 import com.mysema.query.sql.types.ShortType;
 import com.mysema.query.sql.types.StringType;
@@ -45,14 +47,14 @@ import com.mysema.util.ReflectionUtils;
 
 /**
  * JavaTypeMapping provides a mapping from Class to Type instances
- * 
+ *
  * @author tiwe
  *
  */
 public class JavaTypeMapping {
 
     private static final Map<Class<?>,Type<?>> defaultTypes = new HashMap<Class<?>,Type<?>>();
-    
+
     static{
         registerDefault(new BigDecimalType());
         registerDefault(new BlobType());
@@ -60,11 +62,14 @@ public class JavaTypeMapping {
         registerDefault(new BytesType());
         registerDefault(new ByteType());
         registerDefault(new CharacterType());
+        registerDefault(new CalendarType());
         registerDefault(new ClobType());
+        registerDefault(new CurrencyType());
         registerDefault(new DateType());
         registerDefault(new DoubleType());
         registerDefault(new FloatType());
         registerDefault(new IntegerType());
+        registerDefault(new LocaleType());
         registerDefault(new LongType());
         registerDefault(new ObjectType());
         registerDefault(new ShortType());
@@ -73,8 +78,7 @@ public class JavaTypeMapping {
         registerDefault(new TimeType());
         registerDefault(new URLType());
         registerDefault(new UtilDateType());
-        registerDefault(new NullType());
-        
+
         // initialize joda time converters only if joda time is available
         try {
             Class.forName("org.joda.time.DateTime");
@@ -89,7 +93,7 @@ public class JavaTypeMapping {
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
-        
+
     }
 
     private static void registerDefault(Type<?> type) {
@@ -99,15 +103,15 @@ public class JavaTypeMapping {
             defaultTypes.put(primitive, type);
         }
     }
-    
+
     private final Map<Class<?>,Type<?>> typeByClass = new HashMap<Class<?>,Type<?>>();
-    
+
     private final Map<Class<?>,Type<?>> resolvedTypesByClass = new HashMap<Class<?>,Type<?>>();
-    
+
     private final Map<String, Map<String,Type<?>>> typeByColumn = new HashMap<String,Map<String,Type<?>>>();
-    
+
     @Nullable
-    public Type<?> getType(String table, String column) { 
+    public Type<?> getType(String table, String column) {
         Map<String,Type<?>> columns = typeByColumn.get(table);
         if (columns != null) {
             return columns.get(column);
@@ -115,7 +119,7 @@ public class JavaTypeMapping {
             return null;
         }
     }
-    
+
     @SuppressWarnings("unchecked")
     public <T> Type<T> getType(Class<T> clazz) {
         Type<?> resolvedType = resolvedTypesByClass.get(clazz);
@@ -137,10 +141,10 @@ public class JavaTypeMapping {
                 return typeByClass.get(cl);
             } else if (defaultTypes.containsKey(cl)) {
                 return defaultTypes.get(cl);
-            }    
-            cl = cl.getSuperclass(); 
+            }
+            cl = cl.getSuperclass();
         } while(!cl.equals(Object.class));
-        
+
         //Look for a registered type in any implemented interfaces
         Set<Class<?>> interfaces = ReflectionUtils.getImplementedInterfaces(clazz);
         for (Class<?> itf : interfaces) {
@@ -152,7 +156,7 @@ public class JavaTypeMapping {
         }
         return null;
     }
-    
+
     public void register(Type<?> type) {
         typeByClass.put(type.getReturnedClass(), type);
         Class<?> primitive = Primitives.unwrap(type.getReturnedClass());
@@ -171,5 +175,5 @@ public class JavaTypeMapping {
         }
         columns.put(column, type);
     }
-    
+
 }

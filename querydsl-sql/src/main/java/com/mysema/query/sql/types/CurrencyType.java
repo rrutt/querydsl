@@ -1,6 +1,6 @@
 /*
- * Copyright 2011, Mysema Ltd
- * 
+ * Copyright 2013, Mysema Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -17,31 +17,41 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Currency;
+
+import javax.annotation.Nullable;
 
 /**
+ * CurrencyType maps Currency to String on the JDBC level
+ *
  * @author tiwe
  *
  */
-public class NullType extends AbstractType<Null> {
+public class CurrencyType extends AbstractType<Currency> {
 
-    public NullType() {
-        super(Types.OTHER);
+    public CurrencyType() {
+        super(Types.VARCHAR);
+    }
+
+    public CurrencyType(int type) {
+        super(type);
     }
 
     @Override
-    public Class<Null> getReturnedClass() {
-        return Null.class;
+    public Class<Currency> getReturnedClass() {
+        return Currency.class;
     }
 
     @Override
-    public Null getValue(ResultSet rs, int startIndex) throws SQLException {
-        return null;
+    @Nullable
+    public Currency getValue(ResultSet rs, int startIndex) throws SQLException {
+        String val = rs.getString(startIndex);
+        return val != null ? Currency.getInstance(val) : null;
     }
 
     @Override
-    public void setValue(PreparedStatement st, int startIndex, Null value) throws SQLException {
-        int type = st.getParameterMetaData().getParameterType(startIndex);
-        st.setNull(startIndex, type);
+    public void setValue(PreparedStatement st, int startIndex, Currency value) throws SQLException {
+        st.setString(startIndex, value.getCurrencyCode());
     }
 
 }

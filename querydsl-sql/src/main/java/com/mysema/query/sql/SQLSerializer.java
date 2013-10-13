@@ -187,6 +187,33 @@ public class SQLSerializer extends SerializerBase<SQLSerializer> {
             }
         }
 
+        // with
+        if (hasFlags){
+            boolean handled = false;
+            boolean recursive = false;
+            for (QueryFlag flag : flags) {
+                if (flag.getPosition() == Position.WITH) {
+                    if (flag.getFlag() == SQLTemplates.RECURSIVE) {
+                        recursive = true;
+                        continue;
+                    }
+                    if (handled) {
+                        append(", ");
+                    }
+                    handle(flag.getFlag());
+                    handled = true;
+                }
+            }
+            if (handled) {
+                if (recursive) {
+                    prepend(templates.getWithRecursive());
+                } else {
+                    prepend(templates.getWith());
+                }
+                append("\n");
+            }
+        }
+
         // start
         if (hasFlags) {
             serialize(Position.START, flags);
@@ -281,28 +308,34 @@ public class SQLSerializer extends SerializerBase<SQLSerializer> {
                 if (!first) {
                     append(COMMA);
                 }
-                handle(os.getTarget());
                 String order = os.getOrder() == Order.ASC ? templates.getAsc() : templates.getDesc();
                 if (os.getNullHandling() == OrderSpecifier.NullHandling.NullsFirst) {
                     if (templates.getNullsFirst() != null) {
+                        handle(os.getTarget());
                         append(order);
                         append(templates.getNullsFirst());
                     } else {
-                        append(" is not null, ");
+                        append("(case when ");
+                        handle(os.getTarget());
+                        append(" is null then 0 else 1 end), ");
                         handle(os.getTarget());
                         append(order);
                     }
                 } else if (os.getNullHandling() == OrderSpecifier.NullHandling.NullsLast) {
                     if (templates.getNullsLast() != null) {
+                        handle(os.getTarget());
                         append(order);
                         append(templates.getNullsLast());
                     } else {
-                        append(" is null, ");
+                        append("(case when ");
+                        handle(os.getTarget());
+                        append(" is null then 1 else 0 end), ");
                         handle(os.getTarget());
                         append(order);
                     }
 
                 } else {
+                    handle(os.getTarget());
                     append(order);
                 }
                 first = false;
@@ -703,6 +736,12 @@ public class SQLSerializer extends SerializerBase<SQLSerializer> {
                 // handle only target
                 handle(args.get(1));
             }
+
+        } else if (operator == SQLTemplates.WITH_COLUMNS) {
+            boolean oldSkipParent = skipParent;
+            skipParent = true;
+            super.visitOperation(type, operator, args);
+            skipParent = oldSkipParent;
 
         } else {
             super.visitOperation(type, operator, args);

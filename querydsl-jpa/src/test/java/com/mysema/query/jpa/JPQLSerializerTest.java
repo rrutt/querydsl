@@ -15,6 +15,8 @@ package com.mysema.query.jpa;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Arrays;
+
 import org.junit.Test;
 
 import com.mysema.query.DefaultQueryMetadata;
@@ -23,12 +25,37 @@ import com.mysema.query.QueryMetadata;
 import com.mysema.query.domain.QCat;
 import com.mysema.query.jpa.domain.Location;
 import com.mysema.query.jpa.domain.QEmployee;
+import com.mysema.query.support.Expressions;
 import com.mysema.query.types.EntityPath;
+import com.mysema.query.types.Expression;
 import com.mysema.query.types.path.EntityPathBase;
 import com.mysema.query.types.path.NumberPath;
 import com.mysema.query.types.path.StringPath;
 
 public class JPQLSerializerTest {
+
+    @Test
+    public void Case() {
+        QCat cat = QCat.cat;
+        JPQLSerializer serializer = new JPQLSerializer(HQLTemplates.DEFAULT);
+        Expression<?> expr = Expressions.cases().when(cat.toes.eq(2)).then(2)
+                .when(cat.toes.eq(3)).then(3)
+                .otherwise(4);
+        serializer.handle(expr);
+        assertEquals("case when (cat.toes = ?1) then ?1 when (cat.toes = ?2) then ?2 else ?3 end", serializer.toString());
+    }
+
+
+    @Test
+    public void Case2() {
+        QCat cat = QCat.cat;
+        JPQLSerializer serializer = new JPQLSerializer(HQLTemplates.DEFAULT);
+        Expression<?> expr = Expressions.cases().when(cat.toes.eq(2)).then(cat.id.multiply(2))
+                .when(cat.toes.eq(3)).then(cat.id.multiply(3))
+                .otherwise(4);
+        serializer.handle(expr);
+        assertEquals("case when (cat.toes = ?1) then (cat.id * ?1) when (cat.toes = ?2) then (cat.id * ?2) else ?3 end", serializer.toString());
+    }
 
     @Test
     public void FromWithCustomEntityName() {
@@ -96,7 +123,16 @@ public class JPQLSerializerTest {
 
     @Test
     public void In() {
-        //$.parameterRelease.id.eq(releaseId).and($.parameterGroups.any().id.in(filter.getGroups()));
+        JPQLSerializer serializer = new JPQLSerializer(HQLTemplates.DEFAULT);
+        serializer.handle(new NumberPath<Integer>(Integer.class, "id").in(Arrays.asList(1, 2)));
+        assertEquals("id in (?1)", serializer.toString());
+    }
+
+    @Test
+    public void Not_In() {
+        JPQLSerializer serializer = new JPQLSerializer(HQLTemplates.DEFAULT);
+        serializer.handle(new NumberPath<Integer>(Integer.class, "id").notIn(Arrays.asList(1, 2)));
+        assertEquals("id not in (?1)", serializer.toString());
     }
 
     @Test
@@ -116,6 +152,14 @@ public class JPQLSerializerTest {
     }
 
     @Test
+    public void Substring() {
+        JPQLSerializer serializer = new JPQLSerializer(HQLTemplates.DEFAULT);
+        QCat cat = QCat.cat;
+        serializer.handle(cat.name.substring(cat.name.length().subtract(1), 1));
+        assertEquals("substring(cat.name,(length(cat.name) - ?1)+1,1-(length(cat.name) - ?1))", serializer.toString());
+    }
+
+    @Test
     public void NullsFirst() {
         QCat cat = QCat.cat;
         JPQLSerializer serializer = new JPQLSerializer(HQLTemplates.DEFAULT);
@@ -125,7 +169,7 @@ public class JPQLSerializerTest {
         serializer.serialize(md, false, null);
         assertEquals("select cat\n" +
         	     "from Cat cat\n" +
-        	     "order by cat.name is not null, cat.name asc", serializer.toString());
+        	     "order by cat.name asc nulls first", serializer.toString());
     }
 
     @Test
@@ -138,6 +182,6 @@ public class JPQLSerializerTest {
         serializer.serialize(md, false, null);
         assertEquals("select cat\n" +
                      "from Cat cat\n" +
-                     "order by cat.name is null, cat.name asc", serializer.toString());
+                     "order by cat.name asc nulls last", serializer.toString());
     }
 }

@@ -13,9 +13,9 @@
  */
 package com.mysema.query.types;
 
-import java.util.List;
+import java.util.Set;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Ops provides the operators for the fluent query grammar.
@@ -45,13 +45,13 @@ public final class Ops {
 
     public static final Operator<Integer> ORDINAL = new OperatorImpl<Integer>("ORDINAL");
 
-//    public static final Operator<Object>  DELEGATE = new OperatorImplImpl<Object>("DELEGATE");
-
     public static final Operator<Object>  WRAPPED = new OperatorImpl<Object>("WRAPPED");
 
 
     // collection
     public static final Operator<Boolean> IN = new OperatorImpl<Boolean>("IN"); // cmp. contains
+
+    public static final Operator<Boolean> NOT_IN = new OperatorImpl<Boolean>("NOT_IN");
 
     public static final Operator<Boolean> COL_IS_EMPTY = new OperatorImpl<Boolean>("COL_IS_EMPTY");
 
@@ -172,11 +172,19 @@ public final class Ops {
     // subquery operations
     public static final Operator<Boolean> EXISTS = new OperatorImpl<Boolean>("EXISTS");
 
-    public static final List<Operator<?>> equalsOps = ImmutableList.<Operator<?>>of(EQ);
+    public static final Set<Operator<?>> equalsOps = ImmutableSet.<Operator<?>>of(EQ);
 
-    public static final List<Operator<?>> notEqualsOps = ImmutableList.<Operator<?>>of(NE);
+    public static final Set<Operator<?>> notEqualsOps = ImmutableSet.<Operator<?>>of(NE);
 
-    public static final List<Operator<?>> compareOps = ImmutableList.<Operator<?>>of(EQ, NE, LT, GT, GOE, LOE);
+    public static final Set<Operator<?>> compareOps = ImmutableSet.<Operator<?>>of(EQ, NE, LT, GT, GOE, LOE);
+
+    public static final Set<Operator<?>> aggOps = ImmutableSet.of(
+            Ops.AggOps.AVG_AGG,
+            Ops.AggOps.COUNT_AGG,
+            Ops.AggOps.COUNT_DISTINCT_AGG,
+            Ops.AggOps.MAX_AGG,
+            Ops.AggOps.MIN_AGG,
+            Ops.AggOps.SUM_AGG);
 
     /**
      * Aggregation operators
@@ -298,6 +306,8 @@ public final class Ops {
 
         public static final Operator<Integer> WEEK = new OperatorImpl<Integer>("WEEK");
 
+        public static final Operator<Integer> YEAR_MONTH = new OperatorImpl<Integer>("YEAR_MONTH");
+
         public static final Operator<Integer> YEAR_WEEK = new OperatorImpl<Integer>("YEAR_WEEK");
 
         public static final Operator<Integer> DAY_OF_WEEK = new OperatorImpl<Integer>("DAY_OF_WEEK");
@@ -334,6 +344,8 @@ public final class Ops {
         public static final Operator<Number> SIN = new OperatorImpl<Number>("SIN");
 
         public static final Operator<Number> ROUND = new OperatorImpl<Number>("ROUND");
+
+        public static final Operator<Number> ROUND2 = new OperatorImpl<Number>("ROUND");
 
         public static final Operator<Number> RANDOM = new OperatorImpl<Number>("RANDOM");
 

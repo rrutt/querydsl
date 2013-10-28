@@ -24,6 +24,11 @@ import com.mysema.query.types.TemplateExpression;
 import com.mysema.query.types.Visitor;
 import com.mysema.query.types.expr.BooleanOperation;
 
+/**
+ * JPQLSerializer serializes Querydsl expressions into DynamoDB v2 model.
+ *
+ * @author velo
+ */
 public class DynamodbSerializer implements Visitor<Object, DynamoDBScanExpression> {
 
     public static final DynamodbSerializer DEFAULT = new DynamodbSerializer();

@@ -136,6 +136,16 @@
       </roles>
     </developer>    
   </developers>
+  
+  <contributors>
+    <contributor>
+      <name>Marvin Froeder</name>
+      <email>velo.br@gmail.com</email>
+      <roles>
+        <role>querydsl-dynamodb initial contribution</role>
+      </roles>
+    </contributor>
+  </contributors>
 
   <licenses>
     <license>

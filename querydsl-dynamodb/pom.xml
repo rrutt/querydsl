@@ -154,17 +154,16 @@
 		</plugins>
 	</build>
 
-	<repositories>
-		<repository>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-			<id>sonatype-nexus</id>
-			<url>https://oss.sonatype.org/content/groups/public</url>
-		</repository>
-	</repositories>
+	<developers>
+		<developer>
+			<id>velo</id>
+			<name>Marvin Froeder</name>
+			<email>velo.br@gmail.com</email>
+			<url>about.me/velo</url>
+			<roles>
+				<role>donator</role>
+			</roles>
+		</developer>
+	</developers>
 
 </project>

@@ -26,6 +26,11 @@ import com.mysema.query.types.ParamExpression;
 import com.mysema.query.types.Path;
 import com.mysema.query.types.Predicate;
 
+/**
+ * DynamoDBQuery is the implementation of the {@link SimpleQuery} for DynamoDB
+ *
+ * @author velo
+ */
 public class DynamoDBQuery<Q> implements SimpleQuery<DynamoDBQuery<Q>>, SimpleProjectable<Q> {
 
     private AmazonDynamoDB client;

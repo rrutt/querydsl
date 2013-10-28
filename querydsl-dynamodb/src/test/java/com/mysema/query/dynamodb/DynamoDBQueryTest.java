@@ -7,25 +7,31 @@ import static org.junit.Assert.assertThat;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper.FailedBatch;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperConfig;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBScanExpression;
+import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedQueryList;
+import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedScanList;
 import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator;
 import com.amazonaws.services.dynamodbv2.model.Condition;
 import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
-import com.amazonaws.services.dynamodbv2.model.DeleteTableRequest;
+import com.amazonaws.services.dynamodbv2.model.DeleteItemRequest;
 import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
 import com.amazonaws.services.dynamodbv2.model.KeyType;
 import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
-import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
 import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
 import com.michelboudreau.alternator.AlternatorDB;
 import com.michelboudreau.alternatorv2.AlternatorDBClientV2;
@@ -42,47 +48,49 @@ public class DynamoDBQueryTest {
 
     private static DynamoDBMapper mapper;
 
-    private static AlternatorDBClientV2 client;
-
-    private static AlternatorDB db;
+    private static AmazonDynamoDB client;
 
     @BeforeClass
     public static void setUp() throws Exception {
-        client = new AlternatorDBClientV2();
+        client = ClientFactory.getInstance();
         mapper = new DynamoDBMapper(client, new DynamoDBMapperConfig(
                 DynamoDBMapperConfig.SaveBehavior.CLOBBER,
                 DynamoDBMapperConfig.ConsistentReads.CONSISTENT, null));
-        db = new AlternatorDB();
-        db.start();
 
         fillTable();
     }
 
     @AfterClass
     public static void tearDown() throws Exception {
-        db.stop();
+        mapper.batchDelete(u1, u2, u3, u4);
+        ClientFactory.shutdownInstance();
     }
 
     public static void fillTable() throws UnknownHostException {
-        try {
-            client.deleteTable(new DeleteTableRequest("User"));
-        } catch (ResourceNotFoundException e) {
-            // it happens
-        }
-
         ProvisionedThroughput provisionedThroughput = new ProvisionedThroughput();
         provisionedThroughput.setReadCapacityUnits(1L);
         provisionedThroughput.setWriteCapacityUnits(1L);
 
-        CreateTableRequest createTableRequest = new CreateTableRequest()
-                .withTableName("User")
-                .withKeySchema(
-                        new KeySchemaElement().withAttributeName("id").withKeyType(KeyType.HASH))
-                .withProvisionedThroughput(provisionedThroughput)
-                .withAttributeDefinitions(
-                        new AttributeDefinition().withAttributeName("id").withAttributeType(
-                                ScalarAttributeType.S));
-        client.createTable(createTableRequest);
+        if (!client.listTables().getTableNames().contains("User")) {
+            CreateTableRequest createTableRequest = new CreateTableRequest()
+                    .withTableName("User")
+                    .withKeySchema(
+                            new KeySchemaElement().withAttributeName("id")
+                                    .withKeyType(KeyType.HASH))
+                    .withProvisionedThroughput(provisionedThroughput)
+                    .withAttributeDefinitions(
+                            new AttributeDefinition().withAttributeName("id").withAttributeType(
+                                    ScalarAttributeType.S));
+            client.createTable(createTableRequest);
+        } else {
+            DynamoDBScanExpression scan = new DynamoDBScanExpression();
+            PaginatedScanList<User> users = mapper.scan(User.class, scan);
+            for (User user : users) {
+                Map<String, AttributeValue> key = new HashMap<String, AttributeValue>();
+                key.put("id", new AttributeValue().withS(user.getId()));
+                client.deleteItem(new DeleteItemRequest("User", key));
+            }
+        }
 
         u1 = addUser("Jaakko", "Jantunen", 20, Gender.MALE, null);
         u2 = addUser("Jaakki", "Jantunen", 30, Gender.FEMALE, "One detail");
@@ -97,21 +105,6 @@ public class DynamoDBQueryTest {
         mapper.save(user);
         System.out.println(user.getId());
         return user;
-    }
-
-    @Test
-    public void learnIt() {
-        Condition condition = new Condition();
-        List<AttributeValue> attributeValueList = new ArrayList<AttributeValue>();
-        attributeValueList.add(new AttributeValue().withS("Jaak"));
-        condition.setAttributeValueList(attributeValueList);
-        condition.setComparisonOperator(ComparisonOperator.BEGINS_WITH);
-
-        DynamoDBScanExpression scanExpression = new DynamoDBScanExpression();
-        scanExpression.addFilterCondition("firstName", condition);
-        List<User> result = mapper.scan(User.class, scanExpression);
-        result = new ArrayList<User>(result);
-        assertThat(result, containsInAnyOrder(u1, u2));
     }
 
     @Test
@@ -176,8 +169,8 @@ public class DynamoDBQueryTest {
 
     @Test
     public void in() {
-        List<User> result = where(user.firstName.in("Jaakki", "Jaakko")).list();
-        assertThat(result, containsInAnyOrder(u1, u2));
+        List<User> result = where(user.age.in(40)).list();
+        assertThat(result, containsInAnyOrder(u3));
     }
 
     @Test

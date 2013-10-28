@@ -50,6 +50,15 @@ public class DynamodbSerializer implements Visitor<Object, DynamoDBScanExpressio
                 List<String> values = (List<String>) value;
                 return new AttributeValue().withSS(values);
             }
+            if (list.get(0) instanceof Number) {
+                @SuppressWarnings("unchecked")
+                List<Number> values = (List<Number>) value;
+                List<String> asString = new ArrayList<String>();
+                for (Number number : values) {
+                    asString.add(String.valueOf(number));
+                }
+                return new AttributeValue().withNS(asString);
+            }
             throw new UnsupportedOperationException("Unexpected type: List<>:"
                     + list.get(0).getClass());
         }

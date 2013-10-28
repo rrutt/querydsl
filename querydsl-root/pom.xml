@@ -497,7 +497,6 @@
       <id>dynamodb</id>
       <modules>
         <module>../querydsl-core</module>
-        <module>../querydsl-codegen</module>
         <module>../querydsl-apt</module> 
         <module>../querydsl-dynamodb</module>
       </modules>

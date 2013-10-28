@@ -37,8 +37,24 @@ public class DynamodbSerializer implements Visitor<Object, DynamoDBScanExpressio
         if (value instanceof Number) {
             return new AttributeValue().withN(String.valueOf(value));
         }
+        if (value instanceof String[]) {
+            return new AttributeValue().withSS((String[]) value);
+        }
+        if (value instanceof List) {
+            List<?> list = (List<?>) value;
+            if (list.isEmpty()) {
+                return new AttributeValue();
+            }
+            if (list.get(0) instanceof String) {
+                @SuppressWarnings("unchecked")
+                List<String> values = (List<String>) value;
+                return new AttributeValue().withSS(values);
+            }
+            throw new UnsupportedOperationException("Unexpected type: List<>:"
+                    + list.get(0).getClass());
+        }
 
-        throw new UnsupportedOperationException("Unexpected type: " + value);
+        throw new UnsupportedOperationException("Unexpected type: " + value.getClass());
     }
 
     @Override
@@ -68,7 +84,7 @@ public class DynamodbSerializer implements Visitor<Object, DynamoDBScanExpressio
         } else if (op == Ops.LOE) {
             condition.setComparisonOperator(ComparisonOperator.LE);
         } else if (op == Ops.IN) {
-            throw new UnsupportedOperationException(String.valueOf(op));
+            condition.setComparisonOperator(ComparisonOperator.IN);
         } else if (op == Ops.NE) {
             condition.setComparisonOperator(ComparisonOperator.NE);
         } else if (op == Ops.IS_NULL) {

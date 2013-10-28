@@ -65,6 +65,7 @@ import com.mysema.query.jpa.domain.Entity2;
 import com.mysema.query.jpa.domain.FloatProjection;
 import com.mysema.query.jpa.domain.Foo;
 import com.mysema.query.jpa.domain.JobFunction;
+import com.mysema.query.jpa.domain.Numeric;
 import com.mysema.query.jpa.domain.QAnimal;
 import com.mysema.query.jpa.domain.QAuthor;
 import com.mysema.query.jpa.domain.QBook;
@@ -77,6 +78,7 @@ import com.mysema.query.jpa.domain.QFloatProjection;
 import com.mysema.query.jpa.domain.QFoo;
 import com.mysema.query.jpa.domain.QHuman;
 import com.mysema.query.jpa.domain.QMammal;
+import com.mysema.query.jpa.domain.QNumeric;
 import com.mysema.query.jpa.domain.QShow;
 import com.mysema.query.jpa.domain.QSimpleTypes;
 import com.mysema.query.jpa.domain.QUser;
@@ -101,6 +103,7 @@ import com.mysema.query.types.expr.BooleanExpression;
 import com.mysema.query.types.expr.ListExpression;
 import com.mysema.query.types.expr.Param;
 import com.mysema.query.types.expr.SimpleExpression;
+import com.mysema.query.types.expr.StringExpression;
 import com.mysema.query.types.path.EnumPath;
 import com.mysema.query.types.path.ListPath;
 import com.mysema.query.types.path.NumberPath;
@@ -205,6 +208,7 @@ public abstract class AbstractJPATest {
         save(show);
 
         Company company = new Company();
+        company.name = "1234567890123456789012345678901234567890"; // 40
         company.id = 1;
         company.ratingOrdinal = Company.Rating.A;
         company.ratingString = Company.Rating.AA;
@@ -233,6 +237,10 @@ public abstract class AbstractJPATest {
         foo.names = Arrays.asList("a","b");
         foo.bar = "München";
         save(foo);
+
+        Numeric numeric = new Numeric();
+        numeric.setValue(BigDecimal.valueOf(26.9));
+        save(numeric);
     }
 
     @Test
@@ -980,6 +988,14 @@ public abstract class AbstractJPATest {
     }
 
     @Test
+    @NoEclipseLink
+    public void Numeric() {
+        QNumeric numeric = QNumeric.numeric;
+        BigDecimal singleResult = query().from(numeric).singleResult(numeric.value);
+        assertEquals(26.9, singleResult.doubleValue(), 0.001);
+    }
+
+    @Test
     @NoOpenJPA // FIXME
     public void Offset() {
         List<String> names2 = Arrays.asList("Felix123","Mary_123","Ruth123","Some");
@@ -1135,6 +1151,32 @@ public abstract class AbstractJPATest {
         for (String str : query().from(cat).list(cat.name.substring(1,2))) {
             assertEquals(1, str.length());
         }
+    }
+
+    @Test
+    @NoBatooJPA
+    @ExcludeIn(ORACLE)
+    public void Substring2() {
+        QCompany company = QCompany.company;
+        StringExpression name = company.name;
+        Integer companyId = query().from(company).singleResult(company.id);
+        JPQLQuery query = query().from(company).where(company.id.eq(companyId));
+        String str = query.singleResult(company.name);
+
+        assertEquals(Integer.valueOf(29),
+                query.singleResult(name.length().subtract(11)));
+
+        assertEquals(str.substring(0, 7),
+                query.singleResult(name.substring(0, 7)));
+
+        assertEquals(str.substring(15),
+                query.singleResult(name.substring(15)));
+
+        assertEquals(str.substring(str.length()),
+                query.singleResult(name.substring(name.length())));
+
+        assertEquals(str.substring(str.length() - 11),
+                query.singleResult(name.substring(name.length().subtract(11))));
     }
 
     @Test

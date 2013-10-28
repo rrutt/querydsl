@@ -468,7 +468,7 @@ public class SelectBase extends AbstractBaseTest{
         Date date = new Date(0);
         int years = query.singleResult(SQLExpressions.datediff(DatePart.year, date, employee.datefield));
         int months = query.singleResult(SQLExpressions.datediff(DatePart.month, date, employee.datefield));
-        // weeeks
+        // weeks
         int days = query.singleResult(SQLExpressions.datediff(DatePart.day, date, employee.datefield));
         int hours = query.singleResult(SQLExpressions.datediff(DatePart.hour, date, employee.datefield));
         int minutes = query.singleResult(SQLExpressions.datediff(DatePart.minute, date, employee.datefield));
@@ -748,7 +748,7 @@ public class SelectBase extends AbstractBaseTest{
         query().from(employee).offset(3).list(employee.id);
 
         // limit offset
-        expectedQuery =  "select * from (  select a.*, rownum rn from (   select e.ID from EMPLOYEE e  ) a) where rn > 3 and rn <= 7";
+        expectedQuery =  "select * from (  select a.*, rownum rn from (   select e.ID from EMPLOYEE e  ) a) where rn > 3 and rownum <= 4";
         query().from(employee).limit(4).offset(3).list(employee.id);
     }
 
@@ -1271,6 +1271,35 @@ public class SelectBase extends AbstractBaseTest{
     }
 
     @Test
+    @ExcludeIn(SQLITE)
+    public void String_Left() {
+        assertEquals("John", query().from(employee).where(employee.lastname.eq("Johnson"))
+                                    .singleResult(SQLExpressions.left(employee.lastname, 4)));
+    }
+
+    @Test
+    @ExcludeIn({DERBY, SQLITE})
+    public void String_Right() {
+        assertEquals("son", query().from(employee).where(employee.lastname.eq("Johnson"))
+                                   .singleResult(SQLExpressions.right(employee.lastname, 3)));
+    }
+
+    @Test
+    @ExcludeIn({DERBY, SQLITE})
+    public void String_Left_Right() {
+        assertEquals("hn", query().from(employee).where(employee.lastname.eq("Johnson"))
+                                  .singleResult(SQLExpressions.right(SQLExpressions.left(employee.lastname, 4), 2)));
+    }
+
+    @Test
+    @ExcludeIn({DERBY, SQLITE})
+    public void String_Right_Left() {
+        assertEquals("ns", query().from(employee).where(employee.lastname.eq("Johnson"))
+                                  .singleResult(SQLExpressions.left(SQLExpressions.right(employee.lastname, 4), 2)));
+    }
+
+    @Test
+    @ExcludeIn(DERBY)
     public void Substring() {
         //SELECT * FROM account where SUBSTRING(name, -x, 1) = SUBSTRING(name, -y, 1)
         query().from(employee)
@@ -1352,6 +1381,7 @@ public class SelectBase extends AbstractBaseTest{
     }
 
     @Test
+    @ExcludeIn(DERBY)
     public void Tuple2() {
         query().from(employee)
             .list(Expressions.as(ConstantImpl.create("1"),"code"),
